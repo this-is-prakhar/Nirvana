@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nirvana — AI Wealth Manager</title>
+    <meta name="description" content="Nirvana: The world's most intelligent AI Wealth Management Platform. Optimize every aspect of your financial life.">
+    <meta name="theme-color" content="#0a0a0f">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/design-system.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/layouts.css">
+    <link rel="stylesheet" href="css/charts.css">
+    <link rel="stylesheet" href="css/responsive.css">
+
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💎</text></svg>">
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- LOADING SCREEN                               -->
+    <!-- ============================================ -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-logo">
+                <span class="loading-logo-icon">
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                        <path d="M24 4L6 14v20l18 10 18-10V14L24 4z" stroke="url(#logo-grad)" stroke-width="2" fill="none"/>
+                        <path d="M24 4v40M6 14l18 10 18-10M6 34l18-10 18 10" stroke="url(#logo-grad)" stroke-width="1.5" opacity="0.5"/>
+                        <defs><linearGradient id="logo-grad" x1="6" y1="4" x2="42" y2="44"><stop stop-color="#10b981"/><stop offset="1" stop-color="#f59e0b"/></linearGradient></defs>
+                    </svg>
+                </span>
+                <span class="loading-logo-text">NIRVANA</span>
+            </div>
+            <div class="loading-bar">
+                <div class="loading-bar-fill" id="loading-bar-fill"></div>
+            </div>
+            <p class="loading-text" id="loading-text">Initializing wealth engine...</p>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MAIN APPLICATION                             -->
+    <!-- ============================================ -->
+    <div id="app" class="app-layout" style="display:none;">
+
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo" id="sidebar-logo">
+                    <svg class="sidebar-logo-icon" width="32" height="32" viewBox="0 0 48 48" fill="none">
+                        <path d="M24 4L6 14v20l18 10 18-10V14L24 4z" stroke="url(#s-grad)" stroke-width="2.5" fill="none"/>
+                        <path d="M24 4v40M6 14l18 10 18-10M6 34l18-10 18 10" stroke="url(#s-grad)" stroke-width="1.5" opacity="0.4"/>
+                        <defs><linearGradient id="s-grad" x1="6" y1="4" x2="42" y2="44"><stop stop-color="#10b981"/><stop offset="1" stop-color="#f59e0b"/></linearGradient></defs>
+                    </svg>
+                    <span class="sidebar-logo-text">NIRVANA</span>
+                </div>
+                <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" aria-label="Toggle sidebar">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 4l-6 6 6 6"/></svg>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav" id="sidebar-nav" role="navigation" aria-label="Main navigation">
+                <!-- Rendered by sidebar.js -->
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-version">v1.0.0</div>
+            </div>
+        </aside>
+
+        <!-- Main Content Wrapper -->
+        <div class="main-wrapper">
+
+            <!-- Top Bar -->
+            <header class="topbar" id="topbar">
+                <div class="topbar-left">
+                    <button class="topbar-btn mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M3 5h14M3 10h14M3 15h14"/>
+                        </svg>
+                    </button>
+                    <div class="breadcrumb" id="breadcrumb" aria-label="Breadcrumb">
+                        <!-- Rendered by router -->
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <button class="search-trigger" id="search-trigger" aria-label="Search">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="7" cy="7" r="5"/><path d="M11 11l3 3"/>
+                        </svg>
+                        <span class="search-trigger-text">Search...</span>
+                        <kbd class="search-trigger-kbd">⌘K</kbd>
+                    </button>
+                    <button class="topbar-btn" id="notifications-btn" aria-label="Notifications">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M10 2a5 5 0 00-5 5v3l-1.5 2.5h13L15 10V7a5 5 0 00-5-5zM8 17.5a2 2 0 004 0"/>
+                        </svg>
+                        <span class="notification-dot" id="notification-dot" style="display:none;"></span>
+                    </button>
+                    <button class="topbar-btn theme-toggle-btn" id="theme-toggle-btn" aria-label="Toggle theme">
+                        <svg class="theme-icon-dark" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="10" cy="10" r="4"/><path d="M10 1v2M10 17v2M1 10h2M17 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42"/>
+                        </svg>
+                        <svg class="theme-icon-light" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" style="display:none;">
+                            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Page Content Area -->
+            <main class="page-content" id="page-content" role="main">
+                <!-- Pages rendered here by router -->
+            </main>
+
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- COMMAND PALETTE (Cmd+K Search)               -->
+    <!-- ============================================ -->
+    <div id="command-palette" class="command-palette" style="display:none;" role="dialog" aria-label="Search">
+        <div class="command-palette-overlay" id="command-palette-overlay"></div>
+        <div class="command-palette-container">
+            <div class="command-palette-input-wrapper">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" class="command-palette-search-icon">
+                    <circle cx="7" cy="7" r="5"/><path d="M11 11l3 3"/>
+                </svg>
+                <input type="text" id="command-palette-input" class="command-palette-input" placeholder="Search stocks, funds, goals, pages..." autocomplete="off" spellcheck="false">
+                <kbd class="command-palette-esc">ESC</kbd>
+            </div>
+            <div class="command-palette-results" id="command-palette-results">
+                <!-- Search results rendered by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL CONTAINER                              -->
+    <!-- ============================================ -->
+    <div id="modal-container"></div>
+
+    <!-- ============================================ -->
+    <!-- TOAST NOTIFICATIONS                          -->
+    <!-- ============================================ -->
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <!-- ============================================ -->
+    <!-- SCRIPTS — Loaded in dependency order         -->
+    <!-- ============================================ -->
+
+    <!-- Data Files (no dependencies) -->
+    <script src="data/stocks.js"></script>
+    <script src="data/mutual_funds.js"></script>
+    <script src="data/etfs.js"></script>
+    <script src="data/bonds_fd.js"></script>
+    <script src="data/gold_silver.js"></script>
+    <script src="data/macro.js"></script>
+    <script src="data/credit_cards.js"></script>
+    <script src="data/tax_rules.js"></script>
+    <script src="data/govt_schemes.js"></script>
+    <script src="data/insurance_products.js"></script>
+
+    <!-- Utilities (no dependencies) -->
+    <script src="js/utils/currency.js"></script>
+    <script src="js/utils/dates.js"></script>
+    <script src="js/utils/math.js"></script>
+    <script src="js/utils/charts-helper.js"></script>
+
+    <!-- Core Infrastructure -->
+    <script src="js/store.js"></script>
+    <script src="js/router.js"></script>
+    <script src="js/data-loader.js"></script>
+
+    <!-- UI Components -->
+    <script src="js/components/sidebar.js"></script>
+    <script src="js/components/kpi-tile.js"></script>
+    <script src="js/components/chart.js"></script>
+    <script src="js/components/data-table.js"></script>
+    <script src="js/components/form.js"></script>
+    <script src="js/components/modal.js"></script>
+    <script src="js/components/toast.js"></script>
+
+    <!-- Financial Engines -->
+    <script src="js/engines/risk-engine.js"></script>
+    <script src="js/engines/goal-engine.js"></script>
+    <script src="js/engines/allocation-engine.js"></script>
+    <script src="js/engines/tax-engine.js"></script>
+    <script src="js/engines/rebalancing-engine.js"></script>
+    <script src="js/engines/withdrawal-engine.js"></script>
+    <script src="js/engines/insurance-engine.js"></script>
+    <script src="js/engines/loan-engine.js"></script>
+    <script src="js/engines/credit-card-engine.js"></script>
+    <script src="js/engines/retirement-engine.js"></script>
+    <script src="js/engines/wealth-health-engine.js"></script>
+    <script src="js/engines/behavioural-engine.js"></script>
+
+    <!-- Page Modules -->
+    <script src="js/pages/dashboard.js"></script>
+    <script src="js/pages/portfolio.js"></script>
+    <script src="js/pages/goals.js"></script>
+    <script src="js/pages/recommendations.js"></script>
+    <script src="js/pages/withdrawal.js"></script>
+    <script src="js/pages/credit-cards.js"></script>
+    <script src="js/pages/insurance.js"></script>
+    <script src="js/pages/loans.js"></script>
+    <script src="js/pages/tax.js"></script>
+    <script src="js/pages/retirement.js"></script>
+    <script src="js/pages/reports.js"></script>
+    <script src="js/pages/ai-advisor.js"></script>
+    <script src="js/pages/onboarding.js"></script>
+    <script src="js/pages/admin.js"></script>
+
+    <!-- App Initialization (depends on everything) -->
+    <script src="js/app.js"></script>
+
+</body>
+</html>

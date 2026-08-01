@@ -1,0 +1,14 @@
+(function() {
+    'use strict';
+    window.NirvanaData = window.NirvanaData || {};
+    window.NirvanaData.govtSchemes = [
+        { id: 'GS001', name: 'Public Provident Fund (PPF)', type: 'PPF', currentRate: 7.1, lockIn: 15, minInvestment: 500, maxInvestment: 150000, taxBenefit: '80C', taxOnMaturity: 'EEE', eligibility: 'Resident Indians', features: ['Government backed', 'Can be extended in blocks of 5 years', 'Loan facility available'] },
+        { id: 'GS002', name: 'Employees Provident Fund (EPF)', type: 'EPF', currentRate: 8.25, lockIn: 'Retirement', minInvestment: 0, maxInvestment: '12% of Basic Salary', taxBenefit: '80C', taxOnMaturity: 'EEE', eligibility: 'Salaried Employees', features: ['Employer contribution included', 'Partial withdrawal allowed for specific reasons'] },
+        { id: 'GS003', name: 'National Pension System (NPS)', type: 'NPS', currentRate: 'Market Linked (9-12% expected)', lockIn: 'Retirement (Age 60)', minInvestment: 1000, maxInvestment: Infinity, taxBenefit: '80C + 80CCD(1B)', taxOnMaturity: 'EET (60% Tax Free, 40% Annuity)', eligibility: 'Citizens between 18-70 years', features: ['Choice of equity/debt mix', 'Low fund management charges', 'Additional tax benefit of Rs 50,000'] },
+        { id: 'GS004', name: 'Senior Citizen Savings Scheme (SCSS)', type: 'SCSS', currentRate: 8.2, lockIn: 5, minInvestment: 1000, maxInvestment: 3000000, taxBenefit: '80C', taxOnMaturity: 'Taxable', eligibility: 'Individuals above 60 years', features: ['Quarterly interest payout', 'Can be extended by 3 years'] },
+        { id: 'GS005', name: 'Sukanya Samriddhi Yojana (SSY)', type: 'SSY', currentRate: 8.2, lockIn: 21, minInvestment: 250, maxInvestment: 150000, taxBenefit: '80C', taxOnMaturity: 'EEE', eligibility: 'Girl child below 10 years', features: ['Deposits only for first 15 years', 'Partial withdrawal for higher education after 18 years'] },
+        { id: 'GS006', name: 'National Savings Certificate (NSC)', type: 'NSC', currentRate: 7.7, lockIn: 5, minInvestment: 1000, maxInvestment: Infinity, taxBenefit: '80C', taxOnMaturity: 'Interest reinvested is tax-free, final interest taxable', eligibility: 'Resident Indians', features: ['Interest compounded annually but paid at maturity', 'Can be pledged as collateral'] },
+        { id: 'GS007', name: 'Kisan Vikas Patra (KVP)', type: 'KVP', currentRate: 7.5, lockIn: 9.58, minInvestment: 1000, maxInvestment: Infinity, taxBenefit: 'None', taxOnMaturity: 'Taxable', eligibility: 'Resident Indians', features: ['Doubles investment in 115 months', 'Can be transferred to another person'] },
+        { id: 'GS008', name: 'RBI Floating Rate Savings Bonds', type: 'RBI Bonds', currentRate: 8.05, lockIn: 7, minInvestment: 1000, maxInvestment: Infinity, taxBenefit: 'None', taxOnMaturity: 'Taxable', eligibility: 'Resident Indians / HUF', features: ['Rate linked to NSC (+0.35%)', 'Half-yearly interest payout', '100% risk free'] }
+    ];
+})();

@@ -16,6 +16,11 @@
         const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
         return z0 * stdDev + mean;
     }
+
+    function normalizeRate(rate) {
+        if (!rate || isNaN(rate)) return 0;
+        return rate > 1 ? rate / 100 : rate;
+    }
     
     const MathUtils = {
         cagr: function(beginValue, endValue, years) {
@@ -55,25 +60,27 @@
             return 0; // Did not converge
         },
         futureValue: function(pv, annualRate, years) {
-            return pv * Math.pow(1 + annualRate / 100, years);
+            const r = normalizeRate(annualRate);
+            return pv * Math.pow(1 + r, years);
         },
         presentValue: function(fv, annualRate, years) {
-            return fv / Math.pow(1 + annualRate / 100, years);
+            const r = normalizeRate(annualRate);
+            return fv / Math.pow(1 + r, years);
         },
         sipFutureValue: function(monthly, annualRate, years) {
             const months = years * 12;
-            const r = annualRate / 100 / 12;
+            const r = normalizeRate(annualRate) / 12;
             if (r === 0) return monthly * months;
             return monthly * ((Math.pow(1 + r, months) - 1) / r) * (1 + r);
         },
         sipRequired: function(targetAmount, annualRate, years) {
             const months = years * 12;
-            const r = annualRate / 100 / 12;
+            const r = normalizeRate(annualRate) / 12;
             if (r === 0) return targetAmount / months;
             return targetAmount / (((Math.pow(1 + r, months) - 1) / r) * (1 + r));
         },
         emi: function(principal, annualRate, tenureMonths) {
-            const r = annualRate / 100 / 12;
+            const r = normalizeRate(annualRate) / 12;
             if (r === 0) return principal / tenureMonths;
             return principal * r * Math.pow(1 + r, tenureMonths) / (Math.pow(1 + r, tenureMonths) - 1);
         },
@@ -82,80 +89,77 @@
             return (emi * tenureMonths) - principal;
         },
         compoundInterest: function(principal, rate, periods, frequency = 12) {
-            return principal * Math.pow(1 + (rate / 100) / frequency, frequency * periods);
+            const r = normalizeRate(rate);
+            return principal * Math.pow(1 + r / frequency, frequency * periods);
         },
         inflationAdjust: function(amount, inflationRate, years) {
-            return amount * Math.pow(1 + inflationRate / 100, years);
+            const r = normalizeRate(inflationRate);
+            return amount * Math.pow(1 + r, years);
         },
         realReturn: function(nominalReturn, inflationRate) {
-            return ((1 + nominalReturn / 100) / (1 + inflationRate / 100) - 1) * 100;
+            const n = normalizeRate(nominalReturn);
+            const i = normalizeRate(inflationRate);
+            return ((1 + n) / (1 + i) - 1) * 100;
         },
         weightedAverage: function(values, weights) {
-            if (values.length !== weights.length || values.length === 0) return 0;
-            let sumProduct = 0;
+            if (!values || !weights || values.length !== weights.length || values.length === 0) return 0;
+            let sumVal = 0;
             let sumWeight = 0;
             for (let i = 0; i < values.length; i++) {
-                sumProduct += values[i] * weights[i];
+                sumVal += values[i] * weights[i];
                 sumWeight += weights[i];
             }
-            return sumWeight === 0 ? 0 : sumProduct / sumWeight;
+            return sumWeight > 0 ? sumVal / sumWeight : 0;
         },
         standardDeviation: function(values) {
-            if (values.length === 0) return 0;
+            if (!values || values.length === 0) return 0;
             const mean = values.reduce((a, b) => a + b, 0) / values.length;
             const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length;
             return Math.sqrt(variance);
         },
         sharpeRatio: function(returns, riskFreeRate) {
-            if (returns.length === 0) return 0;
-            const meanReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
-            const stdDev = this.standardDeviation(returns);
-            if (stdDev === 0) return 0;
-            return (meanReturn - riskFreeRate) / stdDev;
+            if (!returns || returns.length === 0) return 0;
+            const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
+            const std = this.standardDeviation(returns);
+            if (std === 0) return 0;
+            return (mean - riskFreeRate) / std;
         },
         monteCarlo: function(params) {
-            const { 
-                initialCorpus, 
-                annualContribution = 0, 
-                expectedReturn, 
-                volatility, 
-                years, 
-                simulations = 10000, 
-                seed: paramSeed = 12345 
-            } = params;
+            const { initialCorpus = 0, annualContribution = 0, expectedReturn = 12, volatility = 15, years = 10, simulations = 1000, seed: userSeed } = params;
+            if (userSeed) seed = userSeed;
             
-            seed = paramSeed;
-            const finalCorpuses = [];
+            const results = [];
+            const rMean = normalizeRate(expectedReturn);
+            const rStd = normalizeRate(volatility);
             
-            for (let i = 0; i < simulations; i++) {
+            for (let s = 0; s < simulations; s++) {
                 let corpus = initialCorpus;
                 for (let y = 0; y < years; y++) {
-                    const yearlyReturn = randomNormal(expectedReturn / 100, volatility / 100);
-                    corpus = corpus * (1 + yearlyReturn) + annualContribution;
+                    const ret = randomNormal(rMean, rStd);
+                    corpus = corpus * (1 + ret) + annualContribution;
                 }
-                finalCorpuses.push(corpus);
+                results.push(Math.max(0, corpus));
             }
             
-            finalCorpuses.sort((a, b) => a - b);
+            results.sort((a, b) => a - b);
             
             return {
-                median: this.percentile(finalCorpuses, 50, true),
-                percentile10: this.percentile(finalCorpuses, 10, true),
-                percentile25: this.percentile(finalCorpuses, 25, true),
-                percentile75: this.percentile(finalCorpuses, 75, true),
-                percentile90: this.percentile(finalCorpuses, 90, true),
-                simulations: finalCorpuses
+                median: this.percentile(results, 50),
+                percentile10: this.percentile(results, 10),
+                percentile25: this.percentile(results, 25),
+                percentile75: this.percentile(results, 75),
+                percentile90: this.percentile(results, 90),
+                simulations: results
             };
         },
-        percentile: function(arr, p, sorted = false) {
-            if (arr.length === 0) return 0;
-            const sortedArr = sorted ? arr : [...arr].sort((a, b) => a - b);
-            const index = (p / 100) * (sortedArr.length - 1);
+        percentile: function(arr, p) {
+            if (!arr || arr.length === 0) return 0;
+            const index = (p / 100) * (arr.length - 1);
             const lower = Math.floor(index);
             const upper = Math.ceil(index);
-            const weight = index % 1;
-            if (lower === upper) return sortedArr[lower];
-            return sortedArr[lower] * (1 - weight) + sortedArr[upper] * weight;
+            const weight = index - lower;
+            if (lower === upper) return arr[lower];
+            return arr[lower] * (1 - weight) + arr[upper] * weight;
         }
     };
     

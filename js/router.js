@@ -11,20 +11,26 @@
     
     const Router = {
         init: function() {
-            window.addEventListener('hashchange', this._handleHashChange.bind(this));
-            if (!window.location.hash) {
-                this.navigate('/dashboard');
-            } else {
-                this._handleHashChange();
+            if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+                window.addEventListener('hashchange', this._handleHashChange.bind(this));
+            }
+            if (typeof window !== 'undefined' && window.location) {
+                if (!window.location.hash) {
+                    this.navigate('/dashboard');
+                } else {
+                    this._handleHashChange();
+                }
             }
         },
         
         navigate: function(path) {
-            window.location.hash = '#' + path;
+            if (typeof window !== 'undefined' && window.location) {
+                window.location.hash = '#' + path;
+            }
         },
         
         getCurrentRoute: function() {
-            const hash = window.location.hash.replace('#', '') || '/dashboard';
+            const hash = (typeof window !== 'undefined' && window.location && window.location.hash ? window.location.hash.replace('#', '') : '') || '/dashboard';
             const [pathPart, queryPart] = hash.split('?');
             
             let path = pathPart;

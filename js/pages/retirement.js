@@ -11,142 +11,108 @@
         },
         
         getTemplate() {
+            const store = window.Nirvana.Store;
+            const profile = store ? store.getUserProfile() : {};
+            const utilsCurrency = window.Nirvana.Utils?.Currency || { formatINR: val => '₹' + (val || 0).toLocaleString('en-IN') };
+
+            const userAge = profile.age || 32;
+            const targetAge = profile.retirementAge || 55;
+            const monthlyExp = profile.expenses || 65000;
+            const retCorpus = (profile.retCorpus || 650000) + Math.round((profile.mfValue || 1200000) * 0.5);
+
+            let retCalc = {
+                retirementAge: targetAge,
+                yearsToRetirement: Math.max(1, targetAge - userAge),
+                corpusRequired: 52000000,
+                currentCorpus: retCorpus,
+                readinessPercent: 88,
+                additionalMonthlySavings: 28500,
+                monthlyExpenseAtRetirement: 245000
+            };
+
+            if (window.Nirvana.Engines && window.Nirvana.Engines.RetirementEngine) {
+                retCalc = window.Nirvana.Engines.RetirementEngine.calculate({
+                    age: userAge,
+                    targetRetirementAge: targetAge,
+                    currentMonthlyExpense: monthlyExp,
+                    currentRetirementCorpus: retCorpus
+                });
+            }
+
             return `
                 <div class="page-content animate-fade-in">
-                    <div class="flex items-center justify-between mb-4">
-                        <h1 class="text-2xl font-bold">Retirement & FIRE Planner</h1>
-                        <button class="btn btn--primary px-4 py-2" id="btn-simulate-ret">Simulate Retirement</button>
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h1 class="text-2xl font-bold text-primary">Retirement & Financial Independence (FIRE)</h1>
+                            <p class="text-secondary text-sm">Monte Carlo projected retirement readiness, inflation-adjusted corpus requirements, and sustainable withdrawal rates.</p>
+                        </div>
+                        <button class="btn btn--primary btn--sm" id="btn-recalc-fire">⚡ Recalculate FIRE</button>
                     </div>
                     
-                    <div class="kpi-grid grid grid--5 mb-6 gap-4">
+                    <!-- KPI Tiles -->
+                    <div class="kpi-grid grid grid--4 gap-4 mb-6">
                         <div class="kpi-tile card card--elevated p-4">
-                            <div class="kpi-label text-sm text-muted">Age vs Target</div>
-                            <div class="kpi-value text-xl font-bold mt-1">32 <span class="text-sm font-normal text-muted">/ 45 yrs</span></div>
+                            <div class="kpi-label text-muted text-xs uppercase font-bold tracking-wider">Current Age vs Target</div>
+                            <div class="kpi-value font-bold text-2xl mt-1 text-primary">${userAge} <span class="text-sm font-normal text-muted">/ ${targetAge} yrs (${retCalc.yearsToRetirement} yrs left)</span></div>
+                            <div class="text-xs text-muted mt-2">Target year: <strong>${new Date().getFullYear() + retCalc.yearsToRetirement}</strong></div>
                         </div>
+
                         <div class="kpi-tile card card--elevated p-4">
-                            <div class="kpi-label text-sm text-muted">Required Corpus</div>
-                            <div class="kpi-value text-xl font-bold text-primary mt-1">₹5.2 Cr</div>
+                            <div class="kpi-label text-muted text-xs uppercase font-bold tracking-wider">Required Corpus at ${targetAge}</div>
+                            <div class="kpi-value font-bold text-2xl mt-1 text-danger">${utilsCurrency.formatINR(retCalc.corpusRequired)}</div>
+                            <div class="text-xs text-muted mt-2">At 6% inflation, life expectancy 85</div>
                         </div>
+
                         <div class="kpi-tile card card--elevated p-4">
-                            <div class="kpi-label text-sm text-muted">Projected Corpus</div>
-                            <div class="kpi-value text-xl font-bold text-success mt-1">₹6.1 Cr</div>
+                            <div class="kpi-label text-muted text-xs uppercase font-bold tracking-wider">Current Dedicated Corpus</div>
+                            <div class="kpi-value font-bold text-2xl mt-1 text-gain">${utilsCurrency.formatINR(retCorpus)}</div>
+                            <div class="text-xs text-gain mt-2 font-semibold">Projected to grow to ${utilsCurrency.formatINR(retCorpus * Math.pow(1.11, retCalc.yearsToRetirement))}</div>
                         </div>
+
                         <div class="kpi-tile card card--elevated p-4">
-                            <div class="kpi-label text-sm text-muted">Readiness Score</div>
-                            <div class="kpi-value text-xl font-bold text-gain mt-1">117%</div>
-                        </div>
-                        <div class="kpi-tile card card--elevated p-4">
-                            <div class="kpi-label text-sm text-muted">Post-Ret. Monthly</div>
-                            <div class="kpi-value text-xl font-bold text-warning mt-1">₹1.5L <span class="text-xs font-normal text-muted">infl. adj</span></div>
+                            <div class="kpi-label text-muted text-xs uppercase font-bold tracking-wider">Required Monthly SIP</div>
+                            <div class="kpi-value font-bold text-2xl mt-1 text-info">${utilsCurrency.formatINR(retCalc.additionalMonthlySavings)} <span class="text-xs font-normal text-muted">/ mo</span></div>
+                            <div class="text-xs text-muted mt-2">To bridge 100% of retirement gap</div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                        <div class="card card--glass p-5 col-span-1">
-                            <h3 class="text-lg font-bold mb-5 border-b pb-2">Scenario Sliders</h3>
+                    <!-- Interactive Simulation Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                        <div class="col-span-1 card card--glass p-5">
+                            <h3 class="text-lg font-bold mb-4">Interactive FIRE Sliders</h3>
                             
                             <div class="mb-4">
-                                <label class="flex justify-between text-sm font-semibold mb-1">
+                                <div class="flex justify-between text-xs font-bold mb-1">
                                     <span>Target Retirement Age</span>
-                                    <span id="val-ret-age" class="text-primary">45</span>
-                                </label>
-                                <input type="range" class="w-full accent-blue-600" min="35" max="65" value="45" id="slider-ret-age">
-                            </div>
-                            
-                            <div class="mb-4">
-                                <label class="flex justify-between text-sm font-semibold mb-1">
-                                    <span>Current Monthly Exp (₹)</span>
-                                    <span id="val-mo-exp" class="text-primary">60,000</span>
-                                </label>
-                                <input type="range" class="w-full accent-blue-600" min="20000" max="300000" step="5000" value="60000" id="slider-mo-exp">
+                                    <span id="label-ret-age" class="text-primary font-mono">${targetAge} yrs</span>
+                                </div>
+                                <input type="range" class="w-full accent-emerald-500" min="40" max="65" value="${targetAge}" id="slider-ret-age">
                             </div>
 
                             <div class="mb-4">
-                                <label class="flex justify-between text-sm font-semibold mb-1">
-                                    <span>Inflation Rate (%)</span>
-                                    <span id="val-inf" class="text-primary">6.0%</span>
-                                </label>
-                                <input type="range" class="w-full accent-blue-600" min="3" max="10" step="0.5" value="6" id="slider-inf">
+                                <div class="flex justify-between text-xs font-bold mb-1">
+                                    <span>Current Monthly Expenses (₹)</span>
+                                    <span id="label-ret-exp" class="text-primary font-mono">${utilsCurrency.formatINR(monthlyExp)}</span>
+                                </div>
+                                <input type="range" class="w-full accent-emerald-500" min="30000" max="250000" step="5000" value="${monthlyExp}" id="slider-ret-exp">
                             </div>
 
                             <div class="mb-4">
-                                <label class="flex justify-between text-sm font-semibold mb-1">
-                                    <span>Pre-Ret. Return (%)</span>
-                                    <span id="val-pre-ret" class="text-primary">12.0%</span>
-                                </label>
-                                <input type="range" class="w-full accent-blue-600" min="6" max="15" step="0.5" value="12" id="slider-pre-ret">
+                                <div class="flex justify-between text-xs font-bold mb-1">
+                                    <span>Expected Return Pre-Retirement (%)</span>
+                                    <span class="text-gain font-mono">11.5%</span>
+                                </div>
+                                <input type="range" class="w-full accent-emerald-500" min="8" max="15" step="0.5" value="11.5">
                             </div>
 
-                            <div class="mb-4">
-                                <label class="flex justify-between text-sm font-semibold mb-1">
-                                    <span>Post-Ret. Return (%)</span>
-                                    <span id="val-post-ret" class="text-primary">8.0%</span>
-                                </label>
-                                <input type="range" class="w-full accent-blue-600" min="4" max="10" step="0.5" value="8" id="slider-post-ret">
-                            </div>
-                            
-                            <div class="mb-2">
-                                <label class="flex justify-between text-sm font-semibold mb-1">
-                                    <span>Life Expectancy</span>
-                                    <span id="val-life" class="text-primary">85</span>
-                                </label>
-                                <input type="range" class="w-full accent-blue-600" min="70" max="100" step="1" value="85" id="slider-life">
+                            <div class="card p-3 bg-surface rounded-lg mt-4 border text-xs">
+                                <div class="font-bold text-primary mb-1">💡 Sustainable Withdrawal Rate</div>
+                                <div>At retirement, safe 4% rule allows monthly withdrawal of <strong>${utilsCurrency.formatINR(retCalc.corpusRequired * 0.04 / 12)}</strong> indexed to inflation.</div>
                             </div>
                         </div>
 
-                        <div class="card card--glass p-5 md:col-span-2">
-                            <h3 class="text-lg font-bold mb-4">Monte Carlo Corpus Trajectory</h3>
-                            <div id="retirement-chart" class="w-full bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-center" style="height: 400px;">
-                                <span class="text-slate-400 font-medium">Monte Carlo Chart Rendered Here (Curves to Age 85)</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="card card--glass p-5">
-                            <h3 class="text-lg font-bold mb-4">Retirement Accounts (Accumulation)</h3>
-                            <div class="space-y-5">
-                                <div>
-                                    <div class="flex justify-between text-sm mb-1 font-semibold"><span>EPF Balance</span><span>₹12,45,000</span></div>
-                                    <div class="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden"><div class="bg-blue-600 h-full" style="width: 40%;"></div></div>
-                                </div>
-                                <div>
-                                    <div class="flex justify-between text-sm mb-1 font-semibold"><span>PPF Balance</span><span>₹8,50,000</span></div>
-                                    <div class="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden"><div class="bg-indigo-500 h-full" style="width: 25%;"></div></div>
-                                </div>
-                                <div>
-                                    <div class="flex justify-between text-sm mb-1 font-semibold"><span>NPS Tier I</span><span>₹4,20,000</span></div>
-                                    <div class="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden"><div class="bg-sky-500 h-full" style="width: 15%;"></div></div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="card card--glass p-5">
-                            <h3 class="text-lg font-bold mb-4">FIRE Target Calculator</h3>
-                            <div class="space-y-3">
-                                <div class="p-3 border border-gray-200 rounded-md flex justify-between items-center bg-gray-50">
-                                    <div>
-                                        <div class="font-bold text-sm">LeanFIRE</div>
-                                        <div class="text-xs text-muted mt-0.5">Basic living expenses covered</div>
-                                    </div>
-                                    <div class="text-lg font-bold">₹3.5 Cr</div>
-                                </div>
-                                <div class="p-3 border border-green-300 rounded-md flex justify-between items-center bg-green-50 shadow-sm relative overflow-hidden">
-                                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-green-500"></div>
-                                    <div class="pl-2">
-                                        <div class="font-bold text-green-800 text-sm">Standard FIRE</div>
-                                        <div class="text-xs text-green-600 mt-0.5">Current lifestyle maintained</div>
-                                    </div>
-                                    <div class="text-lg font-bold text-green-800">₹5.2 Cr</div>
-                                </div>
-                                <div class="p-3 border border-gray-200 rounded-md flex justify-between items-center bg-gray-50">
-                                    <div>
-                                        <div class="font-bold text-sm">FatFIRE</div>
-                                        <div class="text-xs text-muted mt-0.5">Luxury lifestyle with buffer</div>
-                                    </div>
-                                    <div class="text-lg font-bold">₹8.5 Cr</div>
-                                </div>
-                            </div>
+                        <div class="col-span-2">
+                            <div id="retirement-projection-chart"></div>
                         </div>
                     </div>
                 </div>
@@ -154,38 +120,79 @@
         },
         
         bindEvents(container) {
-            const syncSlider = (id, valId, formatter) => {
-                const slider = container.querySelector(id);
-                const valDisplay = container.querySelector(valId);
-                if (slider && valDisplay) {
-                    slider.addEventListener('input', (e) => {
-                        valDisplay.textContent = formatter ? formatter(e.target.value) : e.target.value;
-                    });
-                }
-            };
-            
-            syncSlider('#slider-ret-age', '#val-ret-age');
-            syncSlider('#slider-mo-exp', '#val-mo-exp', (v) => Number(v).toLocaleString('en-IN'));
-            syncSlider('#slider-inf', '#val-inf', (v) => v + '%');
-            syncSlider('#slider-pre-ret', '#val-pre-ret', (v) => v + '%');
-            syncSlider('#slider-post-ret', '#val-post-ret', (v) => v + '%');
-            syncSlider('#slider-life', '#val-life');
+            const sliderAge = container.querySelector('#slider-ret-age');
+            const sliderExp = container.querySelector('#slider-ret-exp');
+            const labelAge = container.querySelector('#label-ret-age');
+            const labelExp = container.querySelector('#label-ret-exp');
 
-            const simBtn = container.querySelector('#btn-simulate-ret');
-            if (simBtn) {
-                simBtn.addEventListener('click', () => {
-                    alert('Simulating Retirement trajectory via Monte Carlo...');
+            const utilsCurrency = window.Nirvana.Utils?.Currency || { formatINR: val => '₹' + (val || 0).toLocaleString('en-IN') };
+
+            if (sliderAge && labelAge) {
+                sliderAge.addEventListener('input', (e) => {
+                    labelAge.textContent = `${e.target.value} yrs`;
+                });
+            }
+
+            if (sliderExp && labelExp) {
+                sliderExp.addEventListener('input', (e) => {
+                    labelExp.textContent = utilsCurrency.formatINR(parseFloat(e.target.value));
+                });
+            }
+
+            const btnRecalc = container.querySelector('#btn-recalc-fire');
+            if (btnRecalc) {
+                btnRecalc.addEventListener('click', () => {
+                    const store = window.Nirvana.Store;
+                    const p = store ? store.getUserProfile() : {};
+                    if (sliderAge) p.retirementAge = parseInt(sliderAge.value, 10);
+                    if (sliderExp) p.expenses = parseFloat(sliderExp.value);
+                    if (store) store.setUserProfile(p);
+                    if (window.Nirvana.Components?.Toast) {
+                        window.Nirvana.Components.Toast.success('Retirement trajectory updated with new scenario parameters!', 'Retirement Engine');
+                    }
+                    const c = document.getElementById('page-content');
+                    if (c) Retirement.render(c);
                 });
             }
         },
         
         renderCharts(container) {
-            // Chart rendering logic to be wired up with a library
+            if (window.Nirvana.Components && window.Nirvana.Components.ChartComponent) {
+                const store = window.Nirvana.Store;
+                const profile = store ? store.getUserProfile() : {};
+                const age = profile.age || 32;
+                const retAge = profile.retirementAge || 55;
+
+                const labels = [];
+                const corpusData = [];
+                let current = (profile.retCorpus || 650000) + Math.round((profile.mfValue || 1200000) * 0.5);
+                const sipAnnual = ((profile.income || 175000) * 0.22) * 12;
+
+                for (let a = age; a <= 75; a += 3) {
+                    labels.push(`Age ${a}`);
+                    if (a <= retAge) {
+                        current = current * Math.pow(1.11, 3) + (sipAnnual * 3);
+                    } else {
+                        current = Math.max(0, current * Math.pow(1.075, 3) - ((profile.expenses || 65000) * 12 * 3 * 2.5));
+                    }
+                    corpusData.push(Math.round(current / 100000));
+                }
+
+                const line = window.Nirvana.Components.ChartComponent.createLine('retirement-projection-chart', {
+                    title: 'Corpus Accumulation & Distribution Trajectory',
+                    subtitle: 'Corpus Growth in ₹ Lakhs (Age 32 to 75)',
+                    labels: labels,
+                    datasets: [
+                        { label: 'Projected Corpus (₹ Lakhs)', data: corpusData, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)' }
+                    ]
+                });
+                if (line) this.charts.push(line);
+            }
         },
         
         destroy() {
-            this.charts.forEach(c => {
-                if (c && typeof c.destroy === 'function') c.destroy();
+            this.charts.forEach(chart => {
+                if (typeof chart.destroy === 'function') chart.destroy();
             });
             this.charts = [];
         }

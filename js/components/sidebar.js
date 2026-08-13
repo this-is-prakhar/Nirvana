@@ -90,9 +90,18 @@
                 }
             });
 
-            const toggleBtn = document.getElementById('sidebar-toggle');
+            const toggleBtn = document.getElementById('sidebar-collapse-btn') || document.getElementById('sidebar-toggle');
             if (toggleBtn) {
                 toggleBtn.addEventListener('click', () => this.toggle());
+            }
+
+            const mobileBtn = document.getElementById('mobile-menu-btn');
+            if (mobileBtn) {
+                mobileBtn.addEventListener('click', () => {
+                    document.body.classList.toggle('sidebar-open');
+                    const appEl = document.getElementById('app');
+                    if (appEl) appEl.classList.toggle('sidebar-open');
+                });
             }
             
             const overlay = document.getElementById('sidebar-overlay');
@@ -103,13 +112,16 @@
             const isCollapsed = localStorage.getItem('nirvana_sidebar_collapsed') === 'true';
             if (isCollapsed && window.innerWidth >= 768) {
                 document.body.classList.add('sidebar-collapsed');
+                const appEl = document.getElementById('app');
+                if (appEl) appEl.classList.add('sidebar-collapsed');
             }
         },
 
         setActive: function(path) {
             const navItems = document.querySelectorAll('.nav-item');
             navItems.forEach(item => {
-                if (item.getAttribute('data-path') === path) {
+                const itemPath = item.getAttribute('data-path');
+                if (itemPath === path || (path === '/' && itemPath === '/dashboard') || (path === '/dashboard' && itemPath === '/')) {
                     item.classList.add('active');
                 } else {
                     item.classList.remove('active');
@@ -120,14 +132,20 @@
         toggle: function() {
             if (window.innerWidth < 768) {
                 document.body.classList.toggle('sidebar-open');
+                const appEl = document.getElementById('app');
+                if (appEl) appEl.classList.toggle('sidebar-open');
             } else {
                 const isCollapsed = document.body.classList.toggle('sidebar-collapsed');
+                const appEl = document.getElementById('app');
+                if (appEl) appEl.classList.toggle('sidebar-collapsed', isCollapsed);
                 localStorage.setItem('nirvana_sidebar_collapsed', isCollapsed);
             }
         },
         
         closeMobile: function() {
             document.body.classList.remove('sidebar-open');
+            const appEl = document.getElementById('app');
+            if (appEl) appEl.classList.remove('sidebar-open');
         }
     };
 

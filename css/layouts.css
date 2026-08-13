@@ -19,7 +19,8 @@
     transition: margin-left var(--transition-base);
 }
 
-.app-layout.sidebar-collapsed .main-wrapper {
+.app-layout.sidebar-collapsed .main-wrapper,
+body.sidebar-collapsed .main-wrapper {
     margin-left: 72px;
 }
 

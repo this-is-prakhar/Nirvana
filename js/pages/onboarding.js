@@ -335,8 +335,12 @@
                 this.formData.onboarded = true;
                 store.setUserProfile(this.formData);
                 store.set('onboarded', true);
+                
+                // Initialize all linked financial datasets from user inputs
+                window.Nirvana.Pages.Onboarding.populateDerivedState(this.formData);
+                
                 if (window.Nirvana.Components && window.Nirvana.Components.Toast) {
-                    window.Nirvana.Components.Toast.success('Profile saved! Loading dashboard...', 'Nirvana Wealth');
+                    window.Nirvana.Components.Toast.success('Profile saved! Calculating wealth plan...', 'Nirvana Wealth');
                 }
                 window.Nirvana.Router.navigate('/dashboard');
             }
@@ -351,6 +355,7 @@
                     cityTier: 'Tier-1',
                     occupation: 'Salaried Corporate',
                     income: 175000,
+                    bonus: 300000,
                     expenses: 65000,
                     monthlyEMIs: 25000,
                     bankBalance: 350000,
@@ -361,19 +366,177 @@
                     retCorpus: 650000,
                     homeLoan: 2800000,
                     carLoan: 350000,
-                    lifeCover: 10000000,
-                    healthCover: 1000000,
+                    personalLoan: 0,
+                    ccOutstanding: 0,
+                    lifeCover: 15000000,
+                    lifePremium: 16500,
+                    healthCover: 1500000,
+                    parentHealthCover: 500000,
                     retirementAge: 55,
                     retirementGoal: 50000000,
+                    educationGoal: 2500000,
+                    emergencyMonths: 6,
+                    riskQ1: 'hold',
+                    riskQ2: 'wealth',
+                    riskQ3: '7+',
                     onboarded: true
                 };
                 store.setUserProfile(demoProfile);
                 store.set('onboarded', true);
+                
+                window.Nirvana.Pages.Onboarding.populateDerivedState(demoProfile);
+                
                 if (window.Nirvana.Components && window.Nirvana.Components.Toast) {
                     window.Nirvana.Components.Toast.info('Loaded demo profile. Welcome to Nirvana!', 'Demo Mode');
                 }
                 window.Nirvana.Router.navigate('/dashboard');
             }
+        },
+
+        populateDerivedState(profile) {
+            const store = window.Nirvana.Store;
+            if (!store) return;
+
+            const stocks = profile.stocksValue || 850000;
+            const mf = profile.mfValue || 1200000;
+            const fd = profile.fdValue || 400000;
+            const gold = profile.goldValue || 250000;
+            const bank = profile.bankBalance || 350000;
+            const epf = profile.retCorpus || 650000;
+
+            const totalAssets = stocks + mf + fd + gold + bank + epf;
+            const totalInvested = (stocks * 0.82) + (mf * 0.80) + (fd * 0.95) + (gold * 0.84) + bank + epf;
+
+            // 1. Generate realistic Holdings Table
+            const items = [
+                { id: 'stk-1', name: 'Reliance Industries Ltd.', type: 'Stock', category: 'Equity', invested: Math.round(stocks * 0.28 * 0.82), currentValue: Math.round(stocks * 0.28), returnsPct: 22.0, cmp: 2980, qty: Math.round((stocks * 0.28) / 2980) },
+                { id: 'stk-2', name: 'Tata Consultancy Services', type: 'Stock', category: 'Equity', invested: Math.round(stocks * 0.24 * 0.85), currentValue: Math.round(stocks * 0.24), returnsPct: 17.6, cmp: 3850, qty: Math.round((stocks * 0.24) / 3850) },
+                { id: 'stk-3', name: 'HDFC Bank Ltd.', type: 'Stock', category: 'Equity', invested: Math.round(stocks * 0.22 * 0.88), currentValue: Math.round(stocks * 0.22), returnsPct: 13.6, cmp: 1650, qty: Math.round((stocks * 0.22) / 1650) },
+                { id: 'stk-4', name: 'Infosys Ltd.', type: 'Stock', category: 'Equity', invested: Math.round(stocks * 0.16 * 0.80), currentValue: Math.round(stocks * 0.16), returnsPct: 25.0, cmp: 1520, qty: Math.round((stocks * 0.16) / 1520) },
+                { id: 'stk-5', name: 'ITC Ltd.', type: 'Stock', category: 'Equity', invested: Math.round(stocks * 0.10 * 0.78), currentValue: Math.round(stocks * 0.10), returnsPct: 28.2, cmp: 430, qty: Math.round((stocks * 0.10) / 430) },
+                
+                { id: 'mf-1', name: 'Parag Parikh Flexi Cap Fund', type: 'Mutual Fund', category: 'Equity', invested: Math.round(mf * 0.35 * 0.78), currentValue: Math.round(mf * 0.35), returnsPct: 28.2, nav: 76.5, units: Math.round((mf * 0.35) / 76.5) },
+                { id: 'mf-2', name: 'Mirae Asset Large & Midcap Fund', type: 'Mutual Fund', category: 'Equity', invested: Math.round(mf * 0.25 * 0.82), currentValue: Math.round(mf * 0.25), returnsPct: 21.9, nav: 124.2, units: Math.round((mf * 0.25) / 124.2) },
+                { id: 'mf-3', name: 'SBI Small Cap Fund', type: 'Mutual Fund', category: 'Equity', invested: Math.round(mf * 0.20 * 0.75), currentValue: Math.round(mf * 0.20), returnsPct: 33.3, nav: 162.8, units: Math.round((mf * 0.20) / 162.8) },
+                { id: 'mf-4', name: 'HDFC Balanced Advantage Fund', type: 'Mutual Fund', category: 'Hybrid', invested: Math.round(mf * 0.20 * 0.85), currentValue: Math.round(mf * 0.20), returnsPct: 17.6, nav: 442.1, units: Math.round((mf * 0.20) / 442.1) },
+                
+                { id: 'fd-1', name: 'HDFC Bank Fixed Deposit (7.25%)', type: 'Fixed Deposit', category: 'Debt', invested: Math.round(fd * 0.60), currentValue: Math.round(fd * 0.60), returnsPct: 7.25 },
+                { id: 'fd-2', name: 'SBI Special FD Scheme (7.10%)', type: 'Fixed Deposit', category: 'Debt', invested: Math.round(fd * 0.40), currentValue: Math.round(fd * 0.40), returnsPct: 7.10 },
+                
+                { id: 'gold-1', name: 'Sovereign Gold Bonds (SGB 2023-24)', type: 'Gold Bond', category: 'Gold', invested: Math.round(gold * 0.70 * 0.85), currentValue: Math.round(gold * 0.70), returnsPct: 17.6 },
+                { id: 'gold-2', name: 'Nippon India Gold BeES ETF', type: 'Gold ETF', category: 'Gold', invested: Math.round(gold * 0.30 * 0.88), currentValue: Math.round(gold * 0.30), returnsPct: 13.6 },
+                
+                { id: 'epf-1', name: 'Employees Provident Fund (EPF 8.25%)', type: 'Retirement Scheme', category: 'Debt', invested: Math.round(epf * 0.70), currentValue: Math.round(epf * 0.70), returnsPct: 8.25 },
+                { id: 'ppf-1', name: 'Public Provident Fund (PPF 7.10%)', type: 'Govt Scheme', category: 'Debt', invested: Math.round(epf * 0.30), currentValue: Math.round(epf * 0.30), returnsPct: 7.10 },
+                
+                { id: 'cash-1', name: 'HDFC Premium Savings Account', type: 'Bank Account', category: 'Cash', invested: Math.round(bank * 0.65), currentValue: Math.round(bank * 0.65), returnsPct: 3.5 },
+                { id: 'cash-2', name: 'ICICI Prudential Liquid Fund', type: 'Liquid Fund', category: 'Cash', invested: Math.round(bank * 0.35), currentValue: Math.round(bank * 0.35), returnsPct: 6.8 }
+            ];
+
+            const equityTotal = stocks + (mf * 0.8);
+            const debtTotal = fd + epf + (mf * 0.2);
+            const goldTotal = gold;
+            const cashTotal = bank;
+
+            const portfolioData = {
+                totalValue: totalAssets,
+                totalInvested: Math.round(totalInvested),
+                returns: Math.round(totalAssets - totalInvested),
+                returnsPct: parseFloat(((totalAssets - totalInvested) / totalInvested * 100).toFixed(1)),
+                xirr: 15.2,
+                items: items,
+                allocation: {
+                    equity: Math.round((equityTotal / totalAssets) * 100),
+                    debt: Math.round((debtTotal / totalAssets) * 100),
+                    gold: Math.round((goldTotal / totalAssets) * 100),
+                    cash: Math.round((cashTotal / totalAssets) * 100)
+                }
+            };
+            store.setPortfolio(portfolioData);
+
+            // 2. Generate Real Goals
+            const currentYear = new Date().getFullYear();
+            const retAge = profile.retirementAge || 55;
+            const yearsToRet = Math.max(1, retAge - (profile.age || 32));
+            const goals = [
+                {
+                    id: 1,
+                    name: 'Retirement Corpus (FIRE)',
+                    category: 'Retirement',
+                    icon: '🏖️',
+                    priority: 'High',
+                    targetAmount: profile.retirementGoal || 50000000,
+                    currentCorpus: epf + Math.round(mf * 0.5),
+                    targetYear: currentYear + yearsToRet,
+                    yearsLeft: yearsToRet,
+                    requiredSip: Math.round(((profile.retirementGoal || 50000000) * 0.003)),
+                    currentSip: Math.round((profile.income || 175000) * 0.22)
+                },
+                {
+                    id: 2,
+                    name: 'Child Higher Education',
+                    category: 'Education',
+                    icon: '🎓',
+                    priority: 'High',
+                    targetAmount: profile.educationGoal || 2500000,
+                    currentCorpus: Math.round(stocks * 0.35),
+                    targetYear: currentYear + 10,
+                    yearsLeft: 10,
+                    requiredSip: 12500,
+                    currentSip: 10000
+                },
+                {
+                    id: 3,
+                    name: 'Emergency Living Fund',
+                    category: 'Emergency',
+                    icon: '🏥',
+                    priority: 'High',
+                    targetAmount: (profile.expenses || 65000) * (profile.emergencyMonths || 6),
+                    currentCorpus: bank,
+                    targetYear: currentYear,
+                    yearsLeft: 0,
+                    requiredSip: 15000,
+                    currentSip: 15000
+                },
+                {
+                    id: 4,
+                    name: 'Downpayment for Real Estate',
+                    category: 'Housing',
+                    icon: '🏠',
+                    priority: 'Medium',
+                    targetAmount: 4000000,
+                    currentCorpus: Math.round(fd * 0.75),
+                    targetYear: currentYear + 3,
+                    yearsLeft: 3,
+                    requiredSip: 35000,
+                    currentSip: 25000
+                }
+            ];
+            store.setGoals(goals);
+
+            // 3. Generate Real Loans
+            const homeLoan = profile.homeLoan || 2800000;
+            const carLoan = profile.carLoan || 350000;
+            const personalLoan = profile.personalLoan || 0;
+            const loans = [
+                { id: 'loan-1', name: 'SBI Home Loan', type: 'Home Loan', principalRemaining: homeLoan, interestRate: 8.50, tenureMonths: 216, monthlyEMI: 24350 },
+                { id: 'loan-2', name: 'HDFC Car Loan', type: 'Car Loan', principalRemaining: carLoan, interestRate: 9.20, tenureMonths: 36, monthlyEMI: 11150 }
+            ];
+            if (personalLoan > 0) {
+                loans.push({ id: 'loan-3', name: 'Personal Loan', type: 'Personal', principalRemaining: personalLoan, interestRate: 12.50, tenureMonths: 24, monthlyEMI: Math.round(personalLoan * 0.047) });
+            }
+            store.set('loans', loans);
+
+            // 4. Generate Real Insurance Policies
+            const lifeCover = profile.lifeCover || 15000000;
+            const healthCover = profile.healthCover || 1500000;
+            const parentHealth = profile.parentHealthCover || 500000;
+            const insurance = {
+                life: { sumAssured: lifeCover, premiumAnnual: profile.lifePremium || 16500, planName: 'HDFC Life Click 2 Protect 3D Plus', renewalDate: '2026-11-15' },
+                health: { sumAssured: healthCover, premiumAnnual: 22000, planName: 'Care Supreme Health Insurance', renewalDate: '2026-09-20' },
+                parents: { sumAssured: parentHealth, premiumAnnual: 28000, planName: 'Star Health Senior Citizens Red Carpet', renewalDate: '2026-10-05' }
+            };
+            store.set('insurance', insurance);
         },
         
         destroy() {

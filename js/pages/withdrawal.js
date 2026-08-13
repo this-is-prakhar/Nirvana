@@ -8,187 +8,151 @@
         render(container) {
             this.container = container;
             this.setupUI();
-            this.renderContent();
+            this.bindEvents();
         },
         
         setupUI() {
+            const store = window.Nirvana.Store;
+            const profile = store ? store.getUserProfile() : {};
+            const portfolio = store ? store.getPortfolio() : {};
+            const utilsCurrency = window.Nirvana.Utils?.Currency || { formatINR: val => '₹' + (val || 0).toLocaleString('en-IN') };
+
+            const totalAssets = portfolio.totalValue || 3700000;
+            const liquidCorpus = (profile.bankBalance || 350000) + Math.round((profile.fdValue || 400000) * 0.5);
+            const sustainableSwp = Math.round((totalAssets * 0.04) / 12);
+
+            const bucket1 = Math.round(liquidCorpus);
+            const bucket2 = Math.round((profile.fdValue || 400000) * 0.5 + (profile.goldValue || 250000) + (profile.retCorpus || 650000));
+            const bucket3 = Math.round((profile.stocksValue || 850000) + (profile.mfValue || 1200000));
+
             this.container.innerHTML = `
                 <div class="page-content animate-fade-in">
                     <div class="flex justify-between items-center mb-6">
-                        <h1 class="text-primary text-2xl font-bold">Withdrawal & SWP Planner</h1>
-                        <button class="btn btn--primary px-4 py-2 bg-blue-600 text-white rounded">
-                            <span class="btn--icon">+</span> New Withdrawal Request
-                        </button>
+                        <div>
+                            <h1 class="text-2xl font-bold text-primary">Withdrawal & Systematic Outflow Planner</h1>
+                            <p class="text-secondary text-sm">Tax-optimized asset liquidation sequencing, 3-Bucket liquidity management, and dream purchase simulator.</p>
+                        </div>
+                        <button class="btn btn--primary btn--sm" id="btn-new-swp">+ New SWP Rule</button>
                     </div>
                     
-                    <div class="kpi-grid grid grid--4 gap-4 mb-6" id="withdrawal-kpis"></div>
+                    <!-- KPI Tiles -->
+                    <div class="kpi-grid grid grid--4 gap-4 mb-6">
+                        <div class="kpi-tile card card--elevated p-4">
+                            <div class="kpi-label text-muted text-xs uppercase font-bold tracking-wider">Available Liquid Buffer</div>
+                            <div class="kpi-value font-bold text-2xl mt-1 text-primary">${utilsCurrency.formatINR(liquidCorpus)}</div>
+                            <div class="text-xs text-gain mt-2 font-semibold">T+0 instant liquidity</div>
+                        </div>
+
+                        <div class="kpi-tile card card--elevated p-4">
+                            <div class="kpi-label text-muted text-xs uppercase font-bold tracking-wider">Sustainable Monthly SWP</div>
+                            <div class="kpi-value font-bold text-2xl mt-1 text-gain">${utilsCurrency.formatINR(sustainableSwp)} <span class="text-xs font-normal text-muted">/ mo</span></div>
+                            <div class="text-xs text-muted mt-2">Perpetual 4% rule rate</div>
+                        </div>
+
+                        <div class="kpi-tile card card--elevated p-4">
+                            <div class="kpi-label text-muted text-xs uppercase font-bold tracking-wider">Annual Tax-Free LTCG</div>
+                            <div class="kpi-value font-bold text-2xl mt-1 text-info">₹1,25,000</div>
+                            <div class="text-xs text-muted mt-2">Section 112A tax exemption</div>
+                        </div>
+
+                        <div class="kpi-tile card card--elevated p-4">
+                            <div class="kpi-label text-muted text-xs uppercase font-bold tracking-wider">Active Outflows</div>
+                            <div class="kpi-value font-bold text-2xl mt-1 text-secondary">0 Active SWP</div>
+                            <div class="text-xs text-gain mt-2 font-semibold">Pure Accumulation Phase</div>
+                        </div>
+                    </div>
                     
+                    <!-- Dream Purchase Simulator -->
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                        <div class="col-span-2 card card--elevated p-6 border rounded-lg shadow-sm">
-                            <h2 class="text-xl font-bold mb-4">Dream Purchase Simulator</h2>
-                            <p class="text-sm text-muted mb-4">Simulate the impact of a large withdrawal (e.g., Car, House) on your overall portfolio and tax liability.</p>
+                        <div class="col-span-2 card card--glass p-6 border rounded-lg">
+                            <h3 class="text-lg font-bold mb-2">🚗 Dream Purchase & Capital Outflow Simulator</h3>
+                            <p class="text-xs text-secondary mb-4">Simulate how a major lump-sum purchase (e.g. Luxury Car, Real Estate downpayment, Dream Wedding) should be funded tax-efficiently without disrupting long-term compounding.</p>
                             
-                            <div class="flex gap-4 mb-6">
-                                <div class="form-group flex-1">
-                                    <label class="form-label text-sm font-semibold">Purchase Amount (₹)</label>
-                                    <input type="number" class="form-input border p-2 w-full rounded mt-1" value="1500000" id="sim-amount">
-                                </div>
-                                <div class="form-group flex-1">
-                                    <label class="form-label text-sm font-semibold">Target Date</label>
-                                    <input type="month" class="form-input border p-2 w-full rounded mt-1" id="sim-date">
+                            <div class="flex flex-wrap gap-4 mb-4">
+                                <div class="flex-1 min-w-[200px]">
+                                    <label class="text-xs font-bold text-muted block mb-1">Target Purchase Amount (₹)</label>
+                                    <input type="number" class="form-input" value="1500000" id="sim-amount">
                                 </div>
                                 <div class="flex items-end">
-                                    <button class="btn btn--secondary bg-gray-800 text-white px-4 py-2 rounded" id="btn-simulate">Simulate</button>
+                                    <button class="btn btn--primary" id="btn-run-sim">Simulate Optimal Liquidation</button>
                                 </div>
                             </div>
                             
-                            <div id="sim-results" class="hidden bg-gray-50 p-4 rounded-lg border">
-                                <h3 class="font-bold text-lg mb-2 border-b pb-2">Simulation Results</h3>
-                                <div class="grid grid-cols-2 gap-4 text-sm mt-3">
-                                    <div>
-                                        <div class="text-muted">Recommended Sourcing</div>
-                                        <div class="font-semibold text-primary">₹5L Cash → ₹7L Debt → ₹3L Equity</div>
-                                    </div>
-                                    <div>
-                                        <div class="text-muted">Est. Tax Impact</div>
-                                        <div class="font-semibold text-danger">₹25,000 (LTCG Exceeded)</div>
-                                    </div>
-                                    <div>
-                                        <div class="text-muted">Impact on Retirement</div>
-                                        <div class="font-semibold text-warning">Delayed by 1.5 Years</div>
-                                    </div>
-                                    <div>
-                                        <div class="text-muted">Post-Purchase Wealth Score</div>
-                                        <div class="font-semibold text-gain">78 / 100 (Safe)</div>
-                                    </div>
+                            <div id="sim-results" class="bg-surface p-4 rounded-lg border text-sm">
+                                <h4 class="font-bold mb-2 text-primary">Recommended Liquidation Hierarchy:</h4>
+                                <div class="space-y-2 text-xs">
+                                    <div class="flex justify-between border-b pb-1"><span>1. Bank Savings & Liquid Cash (Zero tax, instant):</span> <strong class="font-mono">₹3,50,000</strong></div>
+                                    <div class="flex justify-between border-b pb-1"><span>2. Maturing Bank Fixed Deposits (Marginal slab):</span> <strong class="font-mono">₹4,00,000</strong></div>
+                                    <div class="flex justify-between border-b pb-1"><span>3. Arbitrage & Hybrid Funds (Tax-free under ₹1.25L limit):</span> <strong class="font-mono">₹7,50,000</strong></div>
+                                    <div class="flex justify-between pt-1 font-bold"><span class="text-gain">Total Estimated Capital Gains Tax:</span> <span class="text-gain font-mono">₹0 (Within exemptions)</span></div>
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="col-span-1 card card--elevated p-6 border rounded-lg shadow-sm">
-                            <h2 class="text-xl font-bold mb-4">Bucket Strategy</h2>
-                            <div class="space-y-4">
-                                <div>
-                                    <div class="flex justify-between text-sm mb-1">
-                                        <span class="font-semibold">Bucket 1 (Cash/Liquid)</span>
-                                        <span class="text-muted">0-3 yrs</span>
-                                    </div>
-                                    <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                        <div class="bg-blue-600 h-2.5 rounded-full" style="width: 15%"></div>
-                                    </div>
-                                    <div class="text-xs text-right mt-1 text-muted">Current: 15% | Target: 10%</div>
+
+                        <!-- Bucket Strategy Breakdown -->
+                        <div class="col-span-1 card card--glass p-5">
+                            <h3 class="text-lg font-bold mb-4">3-Bucket Liquidity Model</h3>
+                            <div class="space-y-4 text-xs">
+                                <div class="p-3 bg-surface rounded border">
+                                    <div class="font-bold text-primary mb-1">Bucket 1 (0–3 Years Outflows)</div>
+                                    <div class="text-muted mb-2">Liquid Cash, Savings, Ultra Short Debt</div>
+                                    <div class="font-bold font-mono text-sm text-gain">${utilsCurrency.formatINR(bucket1)}</div>
                                 </div>
-                                <div>
-                                    <div class="flex justify-between text-sm mb-1">
-                                        <span class="font-semibold">Bucket 2 (Debt)</span>
-                                        <span class="text-muted">3-7 yrs</span>
-                                    </div>
-                                    <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                        <div class="bg-yellow-500 h-2.5 rounded-full" style="width: 35%"></div>
-                                    </div>
-                                    <div class="text-xs text-right mt-1 text-muted">Current: 35% | Target: 30%</div>
+                                <div class="p-3 bg-surface rounded border">
+                                    <div class="font-bold text-primary mb-1">Bucket 2 (3–7 Years Milestones)</div>
+                                    <div class="text-muted mb-2">FDs, Corporate Bonds, Hybrid MFs, SGB</div>
+                                    <div class="font-bold font-mono text-sm text-info">${utilsCurrency.formatINR(bucket2)}</div>
                                 </div>
-                                <div>
-                                    <div class="flex justify-between text-sm mb-1">
-                                        <span class="font-semibold">Bucket 3 (Equity)</span>
-                                        <span class="text-muted">7+ yrs</span>
-                                    </div>
-                                    <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                        <div class="bg-green-500 h-2.5 rounded-full" style="width: 50%"></div>
-                                    </div>
-                                    <div class="text-xs text-right mt-1 text-muted">Current: 50% | Target: 60%</div>
+                                <div class="p-3 bg-surface rounded border">
+                                    <div class="font-bold text-primary mb-1">Bucket 3 (7+ Years Growth)</div>
+                                    <div class="text-muted mb-2">Direct Equities, Flexi-Cap & Small-Cap MFs</div>
+                                    <div class="font-bold font-mono text-sm text-secondary">${utilsCurrency.formatINR(bucket3)}</div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="card card--elevated p-6 border rounded-lg shadow-sm">
-                        <h2 class="text-xl font-bold mb-4">Active SWPs (Systematic Withdrawal Plans)</h2>
-                        <div class="overflow-x-auto">
-                            <table class="data-table data-table--striped w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="bg-gray-100 border-b">
-                                        <th class="p-3 font-semibold text-sm">Goal / Purpose</th>
-                                        <th class="p-3 font-semibold text-sm">Monthly SWP</th>
-                                        <th class="p-3 font-semibold text-sm">Source Asset</th>
-                                        <th class="p-3 font-semibold text-sm">Est. Tax Impact</th>
-                                        <th class="p-3 font-semibold text-sm">Status</th>
-                                        <th class="p-3 font-semibold text-sm">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="swp-table-body">
-                                    <!-- Table content -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
                 </div>
             `;
-            
-            const btnSim = this.container.querySelector('#btn-simulate');
-            btnSim.addEventListener('click', () => {
-                this.container.querySelector('#sim-results').classList.remove('hidden');
-            });
         },
         
-        formatInr(amount) {
-            return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
-        },
-        
-        renderContent() {
-            // KPIs
-            const availableLiquid = 3500000;
-            const sustainableSwp = 85000; // ~4% rule on corpus
-            const activeSwpCount = 2;
-            const taxFreeRemaining = 125000 - 45000; // New 1.25L limit
-            
-            const kpisHtml = `
-                <div class="kpi-tile card card--glass p-4 border rounded-lg shadow-sm">
-                    <div class="kpi-label text-muted text-sm font-semibold uppercase tracking-wide">Available Liquid Corpus</div>
-                    <div class="kpi-value font-bold text-2xl mt-1 text-primary">${this.formatInr(availableLiquid)}</div>
-                </div>
-                <div class="kpi-tile card card--glass p-4 border rounded-lg shadow-sm">
-                    <div class="kpi-label text-muted text-sm font-semibold uppercase tracking-wide">Sustainable Monthly SWP</div>
-                    <div class="kpi-value font-bold text-2xl mt-1 text-gain">${this.formatInr(sustainableSwp)}</div>
-                    <div class="text-xs text-muted mt-1">Based on dynamic 4% rule</div>
-                </div>
-                <div class="kpi-tile card card--glass p-4 border rounded-lg shadow-sm">
-                    <div class="kpi-label text-muted text-sm font-semibold uppercase tracking-wide">Active SWPs</div>
-                    <div class="kpi-value font-bold text-2xl mt-1 text-info">${activeSwpCount}</div>
-                </div>
-                <div class="kpi-tile card card--glass p-4 border rounded-lg shadow-sm">
-                    <div class="kpi-label text-muted text-sm font-semibold uppercase tracking-wide">Remaining Tax-Free LTCG</div>
-                    <div class="kpi-value font-bold text-2xl mt-1 text-warning">${this.formatInr(taxFreeRemaining)}</div>
-                    <div class="text-xs text-muted mt-1">Of ₹1.25L annual limit</div>
-                </div>
-            `;
-            this.container.querySelector('#withdrawal-kpis').innerHTML = kpisHtml;
-            
-            // SWP Table
-            const swps = [
-                { purpose: 'Parental Support', amount: 25000, asset: 'HDFC Short Term Debt Fund', tax: 'Marginal Rate (STCG)', status: 'Active' },
-                { purpose: 'Travel Fund', amount: 15000, asset: 'SBI Equity Hybrid Fund', tax: '12.5% (LTCG > 1.25L)', status: 'Active' }
-            ];
-            
-            const tbodyHtml = swps.map(swp => `
-                <tr class="border-b hover:bg-gray-50">
-                    <td class="p-3 font-medium">${swp.purpose}</td>
-                    <td class="p-3 text-primary font-bold">${this.formatInr(swp.amount)}</td>
-                    <td class="p-3 text-sm text-gray-700">${swp.asset}</td>
-                    <td class="p-3 text-sm text-danger">${swp.tax}</td>
-                    <td class="p-3"><span class="badge badge--success bg-green-100 text-green-800 px-2 py-1 rounded text-xs">${swp.status}</span></td>
-                    <td class="p-3">
-                        <button class="text-blue-600 hover:underline text-sm mr-2">Edit</button>
-                        <button class="text-red-600 hover:underline text-sm">Pause</button>
-                    </td>
-                </tr>
-            `).join('');
-            
-            this.container.querySelector('#swp-table-body').innerHTML = tbodyHtml;
+        bindEvents() {
+            const btnSim = this.container.querySelector('#btn-run-sim');
+            const simAmt = this.container.querySelector('#sim-amount');
+            const utilsCurrency = window.Nirvana.Utils?.Currency || { formatINR: val => '₹' + (val || 0).toLocaleString('en-IN') };
+
+            if (btnSim && simAmt) {
+                btnSim.addEventListener('click', () => {
+                    const amt = parseFloat(simAmt.value) || 1500000;
+                    const res = document.getElementById('sim-results');
+                    if (res) {
+                        res.innerHTML = `
+                            <h4 class="font-bold mb-2 text-primary">Optimal Liquidation Order for ${utilsCurrency.formatINR(amt)}:</h4>
+                            <div class="space-y-2 text-xs">
+                                <div class="flex justify-between border-b pb-1"><span>1. Liquid Savings & Bank Balance:</span> <strong class="font-mono">${utilsCurrency.formatINR(Math.min(amt, 350000))}</strong></div>
+                                <div class="flex justify-between border-b pb-1"><span>2. Fixed Deposits / Liquid Funds:</span> <strong class="font-mono">${utilsCurrency.formatINR(Math.min(Math.max(0, amt - 350000), 400000))}</strong></div>
+                                <div class="flex justify-between border-b pb-1"><span>3. Mutual Funds (Harvesting LTCG):</span> <strong class="font-mono">${utilsCurrency.formatINR(Math.max(0, amt - 750000))}</strong></div>
+                                <div class="flex justify-between pt-1 font-bold"><span class="text-gain">Estimated Effective Tax:</span> <span class="text-gain font-mono">₹${Math.round(Math.max(0, amt - 1000000) * 0.05).toLocaleString('en-IN')} (Optimized)</span></div>
+                            </div>
+                        `;
+                    }
+                    if (window.Nirvana.Components?.Toast) {
+                        window.Nirvana.Components.Toast.success('Simulated tax-optimized withdrawal sequence!', 'Withdrawal Engine');
+                    }
+                });
+            }
+
+            const btnNewSwp = this.container.querySelector('#btn-new-swp');
+            if (btnNewSwp) {
+                btnNewSwp.addEventListener('click', () => {
+                    if (window.Nirvana.Components?.Toast) {
+                        window.Nirvana.Components.Toast.info('You are currently in Wealth Accumulation phase. SWP can be activated during target retirement.', 'SWP Planner');
+                    }
+                });
+            }
         },
         
         destroy() {
-            if(this.container) this.container.innerHTML = '';
+            this.container = null;
         }
     };
     

@@ -8,100 +8,134 @@
         render(container) {
             this.container = container;
             this.setupUI();
-            this.renderContent();
+            this.bindEvents();
         },
         
         setupUI() {
+            const store = window.Nirvana.Store;
+            const profile = store ? store.getUserProfile() : {};
+            const insurance = store ? store.get('insurance') || {} : {};
+            const utilsCurrency = window.Nirvana.Utils?.Currency || { formatINR: val => '₹' + (val || 0).toLocaleString('en-IN') };
+
+            const annualIncome = (profile.income || 175000) * 12;
+            const requiredLife = annualIncome * 10;
+            const currentLife = profile.lifeCover || (insurance.life ? insurance.life.sumAssured : 15000000);
+            const lifeGap = Math.max(0, requiredLife - currentLife);
+            const lifeAdequacyPct = requiredLife > 0 ? Math.min(100, Math.round((currentLife / requiredLife) * 100)) : 100;
+
+            const recommendedHealth = 1500000;
+            const currentHealth = profile.healthCover || (insurance.health ? insurance.health.sumAssured : 1500000);
+            const healthAdequacyPct = Math.min(100, Math.round((currentHealth / recommendedHealth) * 100));
+
             this.container.innerHTML = `
                 <div class="page-content animate-fade-in">
                     <div class="flex justify-between items-center mb-6">
-                        <h1 class="text-primary text-2xl font-bold">Insurance & Protection Analysis</h1>
-                        <button class="btn btn--primary px-4 py-2 bg-blue-600 text-white rounded">
-                            <span class="btn--icon">🛡️</span> Re-evaluate Coverage
-                        </button>
+                        <div>
+                            <h1 class="text-2xl font-bold text-primary">Insurance & Human Capital Protection</h1>
+                            <p class="text-secondary text-sm">Human Life Value (HLV) gap analysis, comprehensive medical cover benchmarks, and active policy vault.</p>
+                        </div>
+                        <button class="btn btn--primary btn--sm" id="btn-reeval-ins">🛡️ Re-evaluate Protection</button>
                     </div>
                     
+                    <!-- Coverage Cards -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <!-- Life Insurance -->
-                        <div class="card card--elevated p-6 border rounded-lg shadow-sm bg-white">
+                        <div class="card card--glass p-6 border rounded-lg">
                             <div class="flex justify-between items-center mb-4">
-                                <h2 class="text-xl font-bold flex items-center gap-2">👨‍👩‍👧 Life Insurance Coverage</h2>
-                                <span class="badge badge--warning bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">Underinsured</span>
+                                <h3 class="text-lg font-bold flex items-center gap-2">👨‍👩‍👧 Life Insurance (Pure Term Protection)</h3>
+                                <span class="badge ${lifeGap === 0 ? 'badge--success' : 'badge--warning'} text-xs px-2 py-0.5">${lifeGap === 0 ? 'Adequate Cover' : 'Underinsured'}</span>
                             </div>
                             
-                            <div class="mb-6">
-                                <div class="flex justify-between text-sm mb-1">
-                                    <span class="text-muted">Current Cover</span>
-                                    <span class="font-bold text-primary">₹1.50 Cr</span>
+                            <div class="mb-4">
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-muted">Current Active Cover:</span>
+                                    <span class="font-bold font-mono text-primary">${utilsCurrency.formatINR(currentLife)}</span>
                                 </div>
-                                <div class="flex justify-between text-sm mb-2">
-                                    <span class="text-muted">Required Cover (HCV Method)</span>
-                                    <span class="font-bold text-gray-800">₹3.00 Cr</span>
+                                <div class="flex justify-between text-xs mb-2">
+                                    <span class="text-muted">Required Cover (10x Annual Income):</span>
+                                    <span class="font-bold font-mono">${utilsCurrency.formatINR(requiredLife)}</span>
                                 </div>
-                                <div class="w-full bg-gray-200 rounded-full h-3">
-                                    <div class="bg-yellow-500 h-3 rounded-full" style="width: 50%"></div>
+                                <div class="progress-bar bg-surface h-2.5 rounded-full mb-2 w-full" style="background: rgba(255,255,255,0.1);">
+                                    <div class="h-full rounded-full" style="width: ${lifeAdequacyPct}%; background: ${lifeAdequacyPct >= 90 ? '#10b981' : '#f59e0b'};"></div>
                                 </div>
-                                <div class="text-xs text-danger mt-2 font-semibold">Gap: ₹1.50 Cr (Action Required)</div>
+                                <div class="text-xs ${lifeGap === 0 ? 'text-gain' : 'text-danger'} font-semibold">
+                                    ${lifeGap === 0 ? '✓ Protection covers 100% of family liabilities' : `⚠️ Protection Gap: ${utilsCurrency.formatINR(lifeGap)} (Add Term Plan)`}
+                                </div>
                             </div>
                             
-                            <div class="bg-blue-50 p-4 rounded border border-blue-100">
-                                <h3 class="font-semibold text-sm mb-2">Recommended Solution</h3>
-                                <p class="text-sm text-gray-700 mb-3">Add a pure term plan of ₹1.5 Cr until age 60.</p>
-                                <button class="btn btn--sm btn--primary bg-blue-600 text-white px-3 py-1 rounded text-sm">Compare Term Plans</button>
+                            <div class="card p-3 bg-surface rounded border text-xs">
+                                <div class="font-bold text-primary mb-1">Recommended Plan</div>
+                                <p class="text-secondary mb-2">HDFC Life Click 2 Protect 3D Plus or Tata AIA Sampoorna Raksha (₹${(requiredLife/10000000).toFixed(1)} Cr Cover ~ ₹14,500/yr).</p>
+                                <button class="btn btn--sm btn--primary py-1" onclick="alert('Viewing Top Term Plans...')">Compare 5 Top Term Plans</button>
                             </div>
                         </div>
                         
                         <!-- Health Insurance -->
-                        <div class="card card--elevated p-6 border rounded-lg shadow-sm bg-white">
+                        <div class="card card--glass p-6 border rounded-lg">
                             <div class="flex justify-between items-center mb-4">
-                                <h2 class="text-xl font-bold flex items-center gap-2">🏥 Health Insurance Coverage</h2>
-                                <span class="badge badge--success bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Adequate</span>
+                                <h3 class="text-lg font-bold flex items-center gap-2">🏥 Health & Critical Illness Protection</h3>
+                                <span class="badge ${healthAdequacyPct >= 100 ? 'badge--success' : 'badge--warning'} text-xs px-2 py-0.5">${healthAdequacyPct >= 100 ? 'Adequate Base Cover' : 'Top-up Needed'}</span>
                             </div>
                             
-                            <div class="mb-6">
-                                <div class="flex justify-between text-sm mb-1">
-                                    <span class="text-muted">Base + Super Top-up</span>
-                                    <span class="font-bold text-primary">₹25L + ₹50L</span>
+                            <div class="mb-4">
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-muted">Family Floater Sum Insured:</span>
+                                    <span class="font-bold font-mono text-gain">${utilsCurrency.formatINR(currentHealth)}</span>
                                 </div>
-                                <div class="flex justify-between text-sm mb-2">
-                                    <span class="text-muted">Recommended Cover</span>
-                                    <span class="font-bold text-gray-800">₹50L Total</span>
+                                <div class="flex justify-between text-xs mb-2">
+                                    <span class="text-muted">Senior Parents Cover:</span>
+                                    <span class="font-bold font-mono text-primary">${utilsCurrency.formatINR(profile.parentHealthCover || 500000)}</span>
                                 </div>
-                                <div class="w-full bg-gray-200 rounded-full h-3">
-                                    <div class="bg-green-500 h-3 rounded-full" style="width: 100%"></div>
+                                <div class="progress-bar bg-surface h-2.5 rounded-full mb-2 w-full" style="background: rgba(255,255,255,0.1);">
+                                    <div class="h-full rounded-full bg-emerald-500" style="width: ${healthAdequacyPct}%; background: #10b981;"></div>
                                 </div>
-                                <div class="text-xs text-gain mt-2 font-semibold">Adequately covered for family floaters.</div>
+                                <div class="text-xs text-gain font-semibold">✓ 100% Hospitalization & 1X Restoration active</div>
                             </div>
                             
-                            <div class="grid grid-cols-2 gap-2 text-sm border-t pt-4">
-                                <div>
-                                    <span class="text-muted block text-xs">Senior Parent Cover</span>
-                                    <span class="font-semibold">₹10L (Active)</span>
-                                </div>
-                                <div>
-                                    <span class="text-muted block text-xs">Restoration Benefit</span>
-                                    <span class="font-semibold text-gain">Available</span>
-                                </div>
+                            <div class="card p-3 bg-surface rounded border text-xs">
+                                <div class="font-bold text-primary mb-1">Enhancement Recommendation</div>
+                                <p class="text-secondary mb-2">Add a ₹50L Super Top-up plan with ₹10L deductible to protect against severe medical inflation (~₹3,500/yr).</p>
+                                <button class="btn btn--sm btn--secondary py-1" onclick="alert('Viewing Super Top-up plans...')">Compare Super Top-ups</button>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="card card--elevated p-6 border rounded-lg shadow-sm bg-white mb-6">
-                        <h2 class="text-xl font-bold mb-4">Policy Vault & Renewal Alerts</h2>
+
+                    <!-- Policy Vault Table -->
+                    <div class="card card--glass p-5 mb-6">
+                        <h3 class="text-lg font-bold mb-4">Active Policy Vault</h3>
                         <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
+                            <table class="data-table data-table--striped w-full text-sm">
                                 <thead>
-                                    <tr class="bg-gray-100 border-b">
-                                        <th class="p-3 font-semibold text-sm">Policy Name</th>
-                                        <th class="p-3 font-semibold text-sm">Type</th>
-                                        <th class="p-3 font-semibold text-sm">Cover Amount</th>
-                                        <th class="p-3 font-semibold text-sm">Premium</th>
-                                        <th class="p-3 font-semibold text-sm">Next Renewal</th>
-                                        <th class="p-3 font-semibold text-sm">Status</th>
+                                    <tr class="border-b text-muted">
+                                        <th class="text-left py-2 px-3">Policy Type</th>
+                                        <th class="text-left py-2 px-3">Plan Name</th>
+                                        <th class="text-right py-2 px-3">Sum Insured</th>
+                                        <th class="text-right py-2 px-3">Annual Premium</th>
+                                        <th class="text-center py-2 px-3">Status</th>
                                     </tr>
                                 </thead>
-                                <tbody id="policy-vault-body">
-                                    <!-- Populated by JS -->
+                                <tbody>
+                                    <tr class="border-b hover:bg-surface">
+                                        <td class="py-2.5 px-3 font-semibold text-primary">Pure Term Life</td>
+                                        <td class="py-2.5 px-3">${insurance.life?.planName || 'HDFC Life Click 2 Protect'}</td>
+                                        <td class="py-2.5 px-3 text-right font-mono font-bold">${utilsCurrency.formatINR(currentLife)}</td>
+                                        <td class="py-2.5 px-3 text-right font-mono">${utilsCurrency.formatINR(profile.lifePremium || 16500)}</td>
+                                        <td class="py-2.5 px-3 text-center"><span class="badge badge--success text-xs px-2 py-0.5">Active</span></td>
+                                    </tr>
+                                    <tr class="border-b hover:bg-surface">
+                                        <td class="py-2.5 px-3 font-semibold text-gain">Family Health Floater</td>
+                                        <td class="py-2.5 px-3">${insurance.health?.planName || 'Care Supreme Health Insurance'}</td>
+                                        <td class="py-2.5 px-3 text-right font-mono font-bold">${utilsCurrency.formatINR(currentHealth)}</td>
+                                        <td class="py-2.5 px-3 text-right font-mono">₹22,000</td>
+                                        <td class="py-2.5 px-3 text-center"><span class="badge badge--success text-xs px-2 py-0.5">Active</span></td>
+                                    </tr>
+                                    <tr class="hover:bg-surface">
+                                        <td class="py-2.5 px-3 font-semibold text-warning">Parents Health Cover</td>
+                                        <td class="py-2.5 px-3">${insurance.parents?.planName || 'Star Health Senior Citizens'}</td>
+                                        <td class="py-2.5 px-3 text-right font-mono font-bold">${utilsCurrency.formatINR(profile.parentHealthCover || 500000)}</td>
+                                        <td class="py-2.5 px-3 text-right font-mono">₹28,000</td>
+                                        <td class="py-2.5 px-3 text-center"><span class="badge badge--success text-xs px-2 py-0.5">Active</span></td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -110,35 +144,19 @@
             `;
         },
         
-        formatInr(amount) {
-            return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
-        },
-        
-        renderContent() {
-            const policies = [
-                { name: 'HDFC Ergo Optima Restore', type: 'Health (Family)', cover: 2500000, premium: 28500, date: '15-Oct-2026', status: 'Active' },
-                { name: 'Max Life Smart Term', type: 'Term Life', cover: 15000000, premium: 14500, date: '02-Nov-2026', status: 'Active' },
-                { name: 'Star Health Senior Citizen Red Carpet', type: 'Health (Parents)', cover: 1000000, premium: 45000, date: '10-Aug-2026', status: 'Due Soon' }
-            ];
-            
-            const tbodyHtml = policies.map(p => {
-                let badgeClass = p.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-                return `
-                <tr class="border-b hover:bg-gray-50">
-                    <td class="p-3 font-medium">${p.name}</td>
-                    <td class="p-3 text-sm text-gray-600">${p.type}</td>
-                    <td class="p-3 font-semibold">${this.formatInr(p.cover)}</td>
-                    <td class="p-3 text-sm">${this.formatInr(p.premium)}/yr</td>
-                    <td class="p-3 text-sm ${p.status === 'Due Soon' ? 'text-danger font-bold' : ''}">${p.date}</td>
-                    <td class="p-3"><span class="badge px-2 py-1 rounded text-xs ${badgeClass}">${p.status}</span></td>
-                </tr>
-            `}).join('');
-            
-            this.container.querySelector('#policy-vault-body').innerHTML = tbodyHtml;
+        bindEvents() {
+            const btn = this.container.querySelector('#btn-reeval-ins');
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    if (window.Nirvana.Components?.Toast) {
+                        window.Nirvana.Components.Toast.success('Insurance adequacy metrics refreshed against current income!', 'Insurance Engine');
+                    }
+                });
+            }
         },
         
         destroy() {
-            if(this.container) this.container.innerHTML = '';
+            this.container = null;
         }
     };
     

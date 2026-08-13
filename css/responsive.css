@@ -42,24 +42,37 @@
     }
 }
 
-/* ========== SMALL TABLET (< 1024px) ========== */
+/* ========== TABLET & LAPTOP (< 1024px) ========== */
 @media (max-width: 1024px) {
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .report-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ========== MOBILE & SMALL SCREENS (< 768px) ========== */
+@media (max-width: 768px) {
     .sidebar {
         transform: translateX(-100%);
         width: 280px;
         box-shadow: var(--shadow-xl);
+        z-index: 1000;
     }
 
+    body.sidebar-open .sidebar,
+    .app-layout.sidebar-open .sidebar,
     .sidebar.mobile-open {
-        transform: translateX(0);
+        transform: translateX(0) !important;
     }
 
     .main-wrapper {
-        margin-left: 0;
+        margin-left: 0 !important;
     }
 
     .app-layout.sidebar-collapsed .main-wrapper {
-        margin-left: 0;
+        margin-left: 0 !important;
     }
 
     .sidebar-collapse-btn {
@@ -73,13 +86,15 @@
     .sidebar-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: calc(var(--z-sidebar) - 1);
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 999;
         opacity: 0;
         visibility: hidden;
         transition: all var(--transition-base);
     }
 
+    body.sidebar-open .sidebar-overlay,
     .sidebar-overlay.visible {
         opacity: 1;
         visibility: visible;

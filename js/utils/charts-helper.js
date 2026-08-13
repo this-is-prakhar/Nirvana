@@ -290,6 +290,13 @@
         }
     };
     
+    // Method Aliases
+    ChartsHelper.createDonut = ChartsHelper.createDonutChart;
+    ChartsHelper.createLine = ChartsHelper.createLineChart;
+    ChartsHelper.createBar = ChartsHelper.createBarChart;
+    ChartsHelper.createRadar = ChartsHelper.createRadarChart;
+    ChartsHelper.createHorizontalBar = ChartsHelper.createHorizontalBarChart;
+
     window.Nirvana = window.Nirvana || {};
     window.Nirvana.Charts = ChartsHelper;
 })();
